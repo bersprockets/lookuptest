@@ -25,6 +25,9 @@ public class LookupTest {
             case "lookupArray":
                 tuple = test.lookupArray();
                 break;
+            case "lookupArrayLinkedList":
+                tuple = test.lookupArrayLinkedList();
+                break;
             case "lookupArraySequential":
                 tuple = test.lookupArraySequential();
                 break;
@@ -33,6 +36,9 @@ public class LookupTest {
                 break;
             case "lookupHashMap":
                 tuple = test.lookupHashMap();
+                break;
+            case "lookupSprawlingLinkedList":
+                tuple = test.lookupSprawlingLinkedList();
                 break;
             default:
                 System.err.println("What?");
@@ -44,7 +50,7 @@ public class LookupTest {
     Tuple<Long> lookupArray() {
         Random r = new Random(3545652656L);
         int arraySize = 2500000;
-        Long[] bigArray = new Long[arraySize];
+        long[] bigArray = new long[arraySize];
         for (int i = 0; i < arraySize; i++) {
             bigArray[i] = Math.abs(r.nextLong()) + 1;
         }
@@ -56,6 +62,70 @@ public class LookupTest {
             long valueAtIndex = bigArray[index];
             assert(valueAtIndex > 0);
             counter++;
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
+    long missCount = 0;
+    private int findUnusedSlot(Random r, long[] array) {
+        int entryCount = array.length / 2;
+        // get random slot in entry array
+        int startSlotIndex = (int)(Math.abs(r.nextInt()) % entryCount);
+        for (int i = 0; i < entryCount; i++) {
+            int candidate = (startSlotIndex + i) % entryCount;
+            int candidateIndex = candidate * 2;
+            if (array[candidateIndex] == -1) {
+                return candidateIndex;
+            }
+            missCount++;
+        }
+        throw new RuntimeException("Unexpectedly ran out of slots!");
+    }
+
+    private int createLinkedList(Random r, long[] array) {
+        int head = -1;
+        int current = -1;
+        for (int i = 0; i < 500; i++) {
+            int next = findUnusedSlot(r, array);
+            array[next] = Math.abs(r.nextLong()) + 1;
+            if (head == -1) {
+                head = next;
+            } else {
+                array[current + 1] = next;
+            }
+            current = next;
+        }
+        return head;
+    }
+
+    Tuple<Long> lookupArrayLinkedList() {
+        Random r = new Random(3545652656L);
+        int entryCount = 2500000;
+        long[] bigArray = new long[entryCount*2];
+        for (int i = 0; i < bigArray.length; i++) {
+            bigArray[i] = -1L;
+        }
+
+        int[] headArray = new int[5000];
+        // create 5000 linked lists, each of length 500 with non-contiguous entries in bigArray.
+        for (int index = 0; index < headArray.length; index++) {
+            headArray[index] = createLinkedList(r, bigArray);
+        }
+        System.err.printf("Missed count is %d\n", missCount);
+
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3000000; i++) {
+            int index = (int) (Math.abs(r.nextLong()) % headArray.length);
+            int next = headArray[index];
+            while (next != -1) {
+                long value = bigArray[next];
+                assert(value > 0);
+                counter++;
+                next = (int) bigArray[next + 1];
+            }
         }
         long duration = System.currentTimeMillis() - startTime;
 
@@ -152,4 +222,66 @@ public class LookupTest {
 
         return new Tuple(duration, counter);
     }
+
+    Tuple<Long> lookupSprawlingLinkedList() {
+        class Node {
+            Node next;
+            long value;
+
+            Node(long value) {
+                this.value = value;
+            }
+        }
+
+        Random r = new Random(3545652656L);
+        int arraySize = 2500000;
+        Node[] bigArray = new Node[arraySize];
+
+        // bounce around the array, adding Nodes that we will later add to a linked list
+        for (int i = 0; i < arraySize*3; i++) {
+            int index = (int)(Math.abs(r.nextLong()) % arraySize);
+            if (bigArray[index] == null) {
+                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1);
+            }
+        }
+        // find all the null entries and fill them
+        int nullCount = 0;
+        for (int index = 0; index < arraySize; index++) {
+            if (bigArray[index] == null) {
+                nullCount++;
+                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1);
+            }
+        }
+        System.err.printf("Null count was %d\n", nullCount);
+
+        // iterate through the array, constructing a linked list
+        Node head = bigArray[0];
+        Node current = head;
+        for (int index = 1; index < arraySize; index++) {
+            current.next = bigArray[index];
+            current = current.next;
+        }
+
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 1500000000/arraySize; i++) {
+            Node next = head;
+            while (next != null) {
+                long value = next.value;
+                assert (value > 0);
+                // we need to get a random number and do something with it
+                int compareValue = (int)(Math.abs(r.nextLong()) % arraySize) * -1;
+                if (value < compareValue) {
+                    System.err.println("Impossible condition!");
+                    System.exit(3);
+                }
+                counter++;
+                next = next.next;
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
 }
