@@ -100,6 +100,22 @@ public class LookupTest {
         return head;
     }
 
+    private Iterator<Long> getIter(long[] array, int head) {
+        return new Iterator<Long>() {
+            int next = head;
+
+            public boolean hasNext() {
+                return next != -1;
+            }
+
+            public Long next() {
+                long value = array[next];
+                next = (int) array[next + 1];
+                return value;
+            }
+        };
+    }
+
     Tuple<Long> lookupArrayLinkedList() {
         Random r = new Random(3545652656L);
         int entryCount = 2500000;
@@ -119,13 +135,21 @@ public class LookupTest {
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 3000000; i++) {
             int index = (int) (Math.abs(r.nextLong()) % headArray.length);
-            int next = headArray[index];
+            int head = headArray[index];
+            Iterator<Long> valueIt = getIter(bigArray, head);
+            while (valueIt.hasNext()) {
+                long value = valueIt.next();
+                assert(value > 0);
+                counter++;
+            }
+
+            /* int next = headArray[index];
             while (next != -1) {
                 long value = bigArray[next];
                 assert(value > 0);
                 counter++;
                 next = (int) bigArray[next + 1];
-            }
+            } */
         }
         long duration = System.currentTimeMillis() - startTime;
 
