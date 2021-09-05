@@ -43,6 +43,9 @@ public class LookupTest {
             case "lookupSprawlingLinkedList":
                 tuple = test.lookupSprawlingLinkedList();
                 break;
+            case "lookupSprawlingArrayLinkedList":
+                tuple = test.lookupSprawlingArrayLinkedList();
+                break;
             default:
                 System.err.println("What?");
                 System.exit(2);
@@ -87,10 +90,10 @@ public class LookupTest {
         throw new RuntimeException("Unexpectedly ran out of slots!");
     }
 
-    private int createLinkedList(Random r, long[] array) {
+    private int createLinkedList(Random r, long[] array, int size) {
         int head = -1;
         int current = -1;
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < size; i++) {
             int next = findUnusedSlot(r, array);
             array[next] = Math.abs(r.nextLong()) + 1;
             if (head == -1) {
@@ -130,7 +133,7 @@ public class LookupTest {
         int[] headArray = new int[5000];
         // create 5000 linked lists, each of length 500 with non-contiguous entries in bigArray.
         for (int index = 0; index < headArray.length; index++) {
-            headArray[index] = createLinkedList(r, bigArray);
+            headArray[index] = createLinkedList(r, bigArray, 500);
         }
         System.err.printf("Missed count is %d\n", missCount);
 
@@ -145,14 +148,6 @@ public class LookupTest {
                 assert(value > 0);
                 counter++;
             }
-
-            /* int next = headArray[index];
-            while (next != -1) {
-                long value = bigArray[next];
-                assert(value > 0);
-                counter++;
-                next = (int) bigArray[next + 1];
-            } */
         }
         long duration = System.currentTimeMillis() - startTime;
 
@@ -339,15 +334,6 @@ public class LookupTest {
     }
 
     Tuple<Long> lookupSprawlingLinkedList() {
-        class Node {
-            Node next;
-            long value;
-
-            Node(long value) {
-                this.value = value;
-            }
-        }
-
         Random r = new Random(3545652656L);
         int arraySize = 2500000;
         Node[] bigArray = new Node[arraySize];
@@ -356,7 +342,7 @@ public class LookupTest {
         for (int i = 0; i < arraySize*3; i++) {
             int index = (int)(Math.abs(r.nextLong()) % arraySize);
             if (bigArray[index] == null) {
-                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1);
+                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1, null);
             }
         }
         // find all the null entries and fill them
@@ -364,7 +350,7 @@ public class LookupTest {
         for (int index = 0; index < arraySize; index++) {
             if (bigArray[index] == null) {
                 nullCount++;
-                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1);
+                bigArray[index] = new Node(Math.abs(r.nextLong()) + 1, null);
             }
         }
         System.err.printf("Null count was %d\n", nullCount);
@@ -399,4 +385,36 @@ public class LookupTest {
         return new Tuple(duration, counter);
     }
 
+    Tuple<Long> lookupSprawlingArrayLinkedList() {
+        Random r = new Random(3545652656L);
+        int entryCount = 2500000;
+        long[] bigArray = new long[entryCount*2];
+        for (int i = 0; i < bigArray.length; i++) {
+            bigArray[i] = -1L;
+        }
+
+        int head = createLinkedList(r, bigArray, entryCount);
+        System.err.printf("Missed count is %d\n", missCount);
+        
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 1500000000/entryCount; i++) {
+            int next = head;
+            while (next != -1) {
+                long value = bigArray[next];
+                assert (value > 0);
+                // we need to get a random number and do something with it
+                int compareValue = (int) (Math.abs(r.nextLong()) % entryCount) * -1;
+                if (value < compareValue) {
+                    System.err.println("Impossible condition!");
+                    System.exit(3);
+                }
+                counter++;
+                next = (int) bigArray[next + 1];
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
 }
