@@ -22,11 +22,14 @@ public class LookupTest {
 
         Tuple<Long> tuple = null;
         switch (args[0]) {
-            case "lookupArray":
-                tuple = test.lookupArray();
-                break;
             case "lookupArrayLinkedList":
                 tuple = test.lookupArrayLinkedList();
+                break;
+            case "lookupLinkedList":
+                tuple = test.lookupLinkedList();
+                break;
+            case "lookupArray":
+                tuple = test.lookupArray();
                 break;
             case "lookupArraySequential":
                 tuple = test.lookupArraySequential();
@@ -150,6 +153,94 @@ public class LookupTest {
                 counter++;
                 next = (int) bigArray[next + 1];
             } */
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
+    class Node {
+        long value;
+        Node next;
+
+        Node(long value, Node next) {
+            this.value = value;
+            this.next = next;
+        }
+    }
+
+    class SimpleLinkedList {
+        Node head;
+        int size = 0;
+
+        void add(long value) {
+            head = new Node(value, head);
+            size++;
+        }
+
+        Iterator<Long> iterator() {
+            return new Iterator<Long>() {
+                Node next = head;
+
+                public boolean hasNext() {
+                    return next != null;
+                }
+
+                public Long next() {
+                    long value = next.value;
+                    next = next.next;
+                    return value;
+                }
+            };
+        }
+    }
+
+    Tuple<Long> lookupLinkedList() {
+        Random r = new Random(3545652656L);
+        SimpleLinkedList[] listArray = new SimpleLinkedList[5000];
+        for (int i = 0; i < 2500000; i++) {
+            // As much as possible, avoid appending to the same linked list
+            // in sequence. We don't want the sequential nodes of a particular
+            // linked list to be adjacent in the heap.
+            // When we later traverse a linked list, we want to bounce
+            // around (although we probably will do that within a limited
+            // area of the heap, since we're only allocating 2500000 nodes).
+            // Also, append only to lists that have less than 500 values.
+            boolean fullList = true;
+            while (fullList) {
+                int index = (int) (Math.abs(r.nextLong()) % listArray.length);
+                SimpleLinkedList list = listArray[index];
+                if (list == null) {
+                    list = new SimpleLinkedList();
+                    listArray[index] = list;
+                }
+                if (list.size < 500) {
+                    list.add(Math.abs(r.nextLong()) + 1);
+                    fullList = false;
+                }
+            }
+        }
+        // check that there are no null entries
+        for (int index = 0; index < listArray.length; index++) {
+            if (listArray[index] == null) {
+                SimpleLinkedList list = new SimpleLinkedList();
+                listArray[index] = list;
+                for (int j = 0; j < 500; j++) {
+                    list.add(Math.abs(r.nextLong()) + 1);
+                }
+            }
+        }
+
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3000000; i++) {
+            int index = (int)(Math.abs(r.nextLong()) % listArray.length);
+            SimpleLinkedList list = listArray[index];
+            for (Iterator<Long> it = list.iterator(); it.hasNext();) {
+                long value = it.next();
+                assert(value > 0);
+                counter++;
+            }
         }
         long duration = System.currentTimeMillis() - startTime;
 
