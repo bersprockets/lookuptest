@@ -25,6 +25,9 @@ public class LookupTest {
             case "lookupArrayLinkedList":
                 tuple = test.lookupArrayLinkedList();
                 break;
+            case "lookupArrayLinkedList2":
+                tuple = test.lookupArrayLinkedList2();
+                break;
             case "lookupLinkedList":
                 tuple = test.lookupLinkedList();
                 break;
@@ -43,8 +46,14 @@ public class LookupTest {
             case "lookupSprawlingLinkedList":
                 tuple = test.lookupSprawlingLinkedList();
                 break;
+            case "lookupSequentialLinkedList":
+                tuple = test.lookupSequentialLinkedList();
+                break;
             case "lookupSprawlingArrayLinkedList":
                 tuple = test.lookupSprawlingArrayLinkedList();
+                break;
+            case "lookupSequentialArrayLinkedList":
+                tuple = test.lookupSequentialArrayLinkedList();
                 break;
             default:
                 System.err.println("What?");
@@ -147,6 +156,65 @@ public class LookupTest {
                 long value = valueIt.next();
                 assert(value > 0);
                 counter++;
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
+    class BlockOfLongs {
+        long[] array;
+        BlockOfLongs(long[] array) {
+            this.array = array;
+            for (int i = 0; i < this.array.length; i++) {
+                this.array[i] = -1L;
+            }
+        }
+        int cursor = 0;
+
+        int allocate(int size) {
+            int index = cursor;
+            if (index >= array.length) {
+                throw new RuntimeException("Ran out of space! " + index);
+            }
+            cursor += size;
+            return index;
+        }
+    }
+
+    Tuple<Long> lookupArrayLinkedList2() {
+        Random r = new Random(3545652656L);
+
+        int entryCount = 2500000;
+        long[] bigArray = new long[entryCount*2];
+        BlockOfLongs bol = new BlockOfLongs(bigArray);
+
+        int[] headArray = new int[5000];
+        for (int i = 0; i < headArray.length; i++) {
+            headArray[i] = -1;
+        }
+        // create 5000 linked lists, each of length 500 with non-contiguous but
+        // descending entries in bigArray.
+        for (int i = 0; i < 500; i++) {
+            for (int headIndex = 0; headIndex < headArray.length; headIndex++) {
+                int index = bol.allocate(2);
+                bigArray[index] = Math.abs(r.nextLong()) + 1;
+                bigArray[index + 1] = headArray[headIndex];
+                headArray[headIndex] = index;
+            }
+        }
+
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3000000; i++) {
+            int index = (int) (Math.abs(r.nextLong()) % headArray.length);
+            int next = headArray[index];
+            while (next != -1) {
+                long value = bigArray[next];
+                assert (value >= 2000000);
+                counter++;
+                next = (int) bigArray[next + 1];
             }
         }
         long duration = System.currentTimeMillis() - startTime;
@@ -379,6 +447,31 @@ public class LookupTest {
         return new Tuple(duration, counter);
     }
 
+    Tuple<Long> lookupSequentialLinkedList() {
+        Random r = new Random(3545652656L);
+
+        int entryCount = 2500000;
+        Node head = new Node(Math.abs(r.nextLong() % 500000000) + 2000000, null);
+        for (int i = 1; i < entryCount; i++) {
+            head = new Node(Math.abs(r.nextLong() % 500000000) + 2000000, head);
+        }
+
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 1500000000/entryCount; i++) {
+            Node next = head;
+            while (next != null) {
+                long value = next.value;
+                assert (value >= 2000000);
+                counter++;
+                next = next.next;
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
     Tuple<Long> lookupSprawlingArrayLinkedList() {
         Random r = new Random(3545652656L);
         int entryCount = 2500000;
@@ -397,6 +490,39 @@ public class LookupTest {
             while (next != -1) {
                 long value = bigArray[next];
                 assert (value > 0);
+                counter++;
+                next = (int) bigArray[next + 1];
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
+    Tuple<Long> lookupSequentialArrayLinkedList() {
+        Random r = new Random(3545652656L);
+        int entryCount = 2500000;
+        long[] bigArray = new long[entryCount*2];
+        for (int i = 0; i < bigArray.length; i++) {
+            bigArray[i] = -1L;
+        }
+
+        for (int i = 0; i < entryCount; i++) {
+            bigArray[i*2] = Math.abs(r.nextLong() % 500000000) + 2000000;
+            if (i < entryCount - 1) {
+                bigArray[(i*2) + 1] = (i*2) + 2;
+            }
+        }
+
+        int head = 0;
+        int counter = 0;
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 1500000000/entryCount; i++) {
+            // really, this is just indexing the array sequentially
+            int next = head;
+            while (next != -1) {
+                long value = bigArray[next];
+                assert (value >= 2000000);
                 counter++;
                 next = (int) bigArray[next + 1];
             }
