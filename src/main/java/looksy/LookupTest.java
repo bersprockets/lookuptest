@@ -370,12 +370,6 @@ public class LookupTest {
             while (next != null) {
                 long value = next.value;
                 assert (value > 0);
-                // we need to get a random number and do something with it
-                int compareValue = (int)(Math.abs(r.nextLong()) % arraySize) * -1;
-                if (value < compareValue) {
-                    System.err.println("Impossible condition!");
-                    System.exit(3);
-                }
                 counter++;
                 next = next.next;
             }
@@ -395,7 +389,7 @@ public class LookupTest {
 
         int head = createLinkedList(r, bigArray, entryCount);
         System.err.printf("Missed count is %d\n", missCount);
-        
+
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 1500000000/entryCount; i++) {
@@ -403,12 +397,6 @@ public class LookupTest {
             while (next != -1) {
                 long value = bigArray[next];
                 assert (value > 0);
-                // we need to get a random number and do something with it
-                int compareValue = (int) (Math.abs(r.nextLong()) % entryCount) * -1;
-                if (value < compareValue) {
-                    System.err.println("Impossible condition!");
-                    System.exit(3);
-                }
                 counter++;
                 next = (int) bigArray[next + 1];
             }
