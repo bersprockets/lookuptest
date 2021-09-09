@@ -1,5 +1,8 @@
 package looksy;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.*;
 
 public class LookupTest {
@@ -18,33 +21,49 @@ public class LookupTest {
             System.err.println("No test name specified");
             System.exit(1);
         }
+        String testName = args[0];
+        boolean pause = false;
+        if (args.length > 1 && args[1].equalsIgnoreCase("pause")) {
+            pause = true;
+        }
         LookupTest test = new LookupTest();
 
         Tuple<Long> tuple = null;
-        switch (args[0]) {
+        switch (testName) {
             case "lookupArrayLinkedList":
-                tuple = test.lookupArrayLinkedList();
+                tuple = test.lookupArrayLinkedList(pause);
                 break;
             case "lookupLinkedList":
-                tuple = test.lookupLinkedList();
+                tuple = test.lookupLinkedList(pause);
                 break;
             case "lookupSequentialArrayLinkedList":
-                tuple = test.lookupSequentialArrayLinkedList();
+                tuple = test.lookupSequentialArrayLinkedList(pause);
                 break;
             case "lookupSequentialLinkedList":
-                tuple = test.lookupSequentialLinkedList();
+                tuple = test.lookupSequentialLinkedList(pause);
                 break;
             case "lookupLinkedListShort":
-                tuple = test.lookupLinkedListShort();
+                tuple = test.lookupLinkedListShort(pause);
                 break;
             case "lookupArrayLinkedListShort":
-                tuple = test.lookupArrayLinkedListShort();
+                tuple = test.lookupArrayLinkedListShort(pause);
                 break;
             default:
                 System.err.println("What?");
                 System.exit(2);
         }
         System.out.printf("Duration: %d, count %d\n", tuple._1, tuple._2);
+    }
+
+    private void prompt() {
+        System.out.println("Pausing...");
+        BufferedReader reader = new BufferedReader(
+                new InputStreamReader(System.in));
+        try {
+            reader.readLine();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     private Iterator<Long> getIter(long[] array, int head) {
@@ -83,7 +102,7 @@ public class LookupTest {
         }
     }
 
-    Tuple<Long> lookupArrayLinkedList() {
+    Tuple<Long> lookupArrayLinkedList(boolean pause) {
         Random r = new Random(3545652656L);
 
         int entryCount = 2500000;
@@ -105,6 +124,9 @@ public class LookupTest {
             }
         }
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 3000000; i++) {
@@ -157,7 +179,7 @@ public class LookupTest {
         }
     }
 
-    Tuple<Long> lookupLinkedList() {
+    Tuple<Long> lookupLinkedList(boolean pause) {
         Random r = new Random(3545652656L);
         SimpleLinkedList[] listArray = new SimpleLinkedList[5000];
         // Avoid appending to the same linked list in sequence.
@@ -174,6 +196,9 @@ public class LookupTest {
             }
         }
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 3000000; i++) {
@@ -191,7 +216,7 @@ public class LookupTest {
         return new Tuple(duration, counter);
     }
 
-    Tuple<Long> lookupSequentialArrayLinkedList() {
+    Tuple<Long> lookupSequentialArrayLinkedList(boolean pause) {
         Random r = new Random(3545652656L);
 
         int entryCount = 2500000;
@@ -232,6 +257,9 @@ public class LookupTest {
         }
         System.out.println("Done verifying lists");
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 3000000; i++) {
@@ -248,7 +276,7 @@ public class LookupTest {
         return new Tuple(duration, counter);
     }
 
-    Tuple<Long> lookupSequentialLinkedList() {
+    Tuple<Long> lookupSequentialLinkedList(boolean pause) {
         System.out.println("lookupSequentialLinkedList");
         Random r = new Random(3545652656L);
         SimpleLinkedList[] listArray = new SimpleLinkedList[5000];
@@ -260,6 +288,9 @@ public class LookupTest {
             }
         }
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 3000000; i++) {
@@ -277,7 +308,7 @@ public class LookupTest {
     }
 
     // short linked lists
-    Tuple<Long> lookupLinkedListShort() {
+    Tuple<Long> lookupLinkedListShort(boolean pause) {
         System.out.println("lookupLinkedListShort");
         Random r = new Random(3545652656L);
         SimpleLinkedList[] listArray = new SimpleLinkedList[500000];
@@ -297,6 +328,9 @@ public class LookupTest {
 
         System.out.printf("Length of list at element 200 is %d\n", listArray[200].size);
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 750000000; i++) {
@@ -313,7 +347,7 @@ public class LookupTest {
         return new Tuple(duration, counter);
     }
 
-    Tuple<Long> lookupArrayLinkedListShort() {
+    Tuple<Long> lookupArrayLinkedListShort(boolean pause) {
         System.out.println("lookupArrayLinkedListShort");
         Random r = new Random(3545652656L);
 
@@ -336,6 +370,9 @@ public class LookupTest {
             }
         }
 
+        if (pause) {
+            prompt();
+        }
         int counter = 0;
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 750000000; i++) {
