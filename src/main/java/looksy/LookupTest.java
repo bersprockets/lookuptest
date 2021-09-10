@@ -33,6 +33,9 @@ public class LookupTest {
             case "lookupArrayLinkedList":
                 tuple = test.lookupArrayLinkedList(pause);
                 break;
+            case "lookupCompactedArrayLinkedList":
+                tuple = test.lookupCompactedArrayLinkedList(pause);
+                break;
             case "lookupLinkedList":
                 tuple = test.lookupLinkedList(pause);
                 break;
@@ -129,6 +132,66 @@ public class LookupTest {
         }
         int counter = 0;
         long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 3000000; i++) {
+            int index = (int) (Math.abs(r.nextLong()) % headArray.length);
+            Iterator<Long> it = getIter(bigArray, headArray[index]);
+            while (it.hasNext()) {
+                long value = it.next();
+                assert (value >= 2000000);
+                counter++;
+            }
+        }
+        long duration = System.currentTimeMillis() - startTime;
+
+        return new Tuple(duration, counter);
+    }
+
+    Tuple<Long> lookupCompactedArrayLinkedList(boolean pause) {
+        Random r = new Random(3545652656L);
+
+        int entryCount = 2500000;
+        long[] bigArray = new long[entryCount*2];
+        BlockOfLongs bol = new BlockOfLongs(bigArray);
+
+        int[] headArray = new int[5000];
+        for (int i = 0; i < headArray.length; i++) {
+            headArray[i] = -1;
+        }
+        // create 5000 linked lists, each of length 500 with non-contiguous but
+        // descending entries in bigArray.
+        for (int i = 0; i < 500; i++) {
+            for (int headIndex = 0; headIndex < headArray.length; headIndex++) {
+                int index = bol.allocate(2);
+                bigArray[index] = Math.abs(r.nextLong()) + 1;
+                bigArray[index + 1] = headArray[headIndex];
+                headArray[headIndex] = index;
+            }
+        }
+
+        if (pause) {
+            prompt();
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        // first, compact bigArray
+        long[] oldBigArray = bigArray;
+        bigArray = new long[entryCount*2];
+        bol = new BlockOfLongs(bigArray);
+        for (int headIndex = 0; headIndex < headArray.length; headIndex++) {
+            int next = headArray[headIndex];
+            headArray[headIndex] = -1;
+            while (next != -1) {
+                long value = oldBigArray[next];
+                int index = bol.allocate(2);
+                bigArray[index] = value;
+                bigArray[index + 1] = headArray[headIndex];
+                headArray[headIndex] = index;
+                next = (int) oldBigArray[next + 1];
+            }
+        }
+
+        int counter = 0;
         for (int i = 0; i < 3000000; i++) {
             int index = (int) (Math.abs(r.nextLong()) % headArray.length);
             Iterator<Long> it = getIter(bigArray, headArray[index]);
